@@ -1,20 +1,18 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace apiACDemo;
 
-public class AircraftService
-{
-    private readonly AircraftDB _db;
-    
-    public AircraftService(AircraftDB db)
-    {
-        _db = db;
-    }
 
-    public Aircraft CreateAircraft(AircraftController.CreateAcDto dto)
+
+public class AircraftService (MyDbContext db) : IAircraftService
+{
+
+    public async Task<AircraftEntity> CreateAircraft(AircraftController.CreateAcDto dto)
     {
         Validator.ValidateObject(dto, new ValidationContext(dto), true);
-        var ac = new Aircraft()
+        var ac = new AircraftEntity()
         {
             Brand = dto.Brand,
             Model = dto.Model,
@@ -22,50 +20,49 @@ public class AircraftService
             CreatedAt = DateTime.Now.ToUniversalTime(),
             Id = Guid.NewGuid().ToString()
         };
-        _db.AllAircrafts.Add(ac);
-        return new Aircraft();
+        await db.Aircrafts.AddAsync(ac);
+        await db.SaveChangesAsync();
+        return ac;
     }
 
-    public Aircraft UpdateAc(string id, AircraftController.CreateAcDto acs)
+    public async Task<AircraftEntity> UpdateAc(string id, AircraftController.CreateAcDto acs)
     {
+        if (id.Equals("1") || id.Equals("2"))
+            throw new ArgumentException("The first two aircrafts can not modify their properties.");
         Validator.ValidateObject(acs, new ValidationContext(acs), true);
-        var existingAc = _db.AllAircrafts.First(p => p.Id == id);
-        existingAc.Brand = acs.Brand;
-        existingAc.Model = acs.Model;
-        existingAc.YearOfManufacture = acs.YearOfManufacture;
-        return existingAc;
-    }
-
-    public Boolean DeleteAc(string id)
-    {
-        var ac = _db.AllAircrafts.First(p => p.Id == id);
-        if (ac == null)
+        var existingAc = db.Aircrafts.FirstOrDefaultAsync(p => p.Id == id);
+        if (existingAc.Result == null)
             throw new KeyNotFoundException("Could not find the aircraft with id: " + id + "");
-        var success = _db.AllAircrafts.Remove(ac);
-        return !success ? throw new Exception("Error while deleting the aircraft!") : true;
+        existingAc.Result.Brand = acs.Brand;
+        existingAc.Result.Model = acs.Model;
+        existingAc.Result.YearOfManufacture = acs.YearOfManufacture;
+        await db.SaveChangesAsync();
+        return existingAc.Result;
     }
 
-    public List<Aircraft> GetAircrafts()
+    public async Task<AircraftEntity> DeleteAc(string id)
     {
-        List<Aircraft> a = _db.AllAircrafts.ToList();
-        if (a.Count == 0)
-        {
-            a.AddRange(new List<Aircraft>
-            {
-                new Aircraft { Brand = "Boeing", Model = "738", YearOfManufacture = 2010, CreatedAt = DateTime.Now.ToUniversalTime(), Id = Guid.NewGuid().ToString()},
-                new Aircraft { Brand = "Boeing", Model = "787", YearOfManufacture = 2015, CreatedAt = DateTime.Now.ToUniversalTime(), Id = Guid.NewGuid().ToString()},
-                new Aircraft { Brand = "Airbus", Model = "A350", YearOfManufacture = 2019, CreatedAt = DateTime.Now.ToUniversalTime(), Id = Guid.NewGuid().ToString()}
-            });
-        }
-        return a;
-    }
-
-    public Aircraft GetOneAircraft(string id)
-    {
-        var Aircratf = _db.AllAircrafts.First(p => p.Id == id);
-        if (Aircratf == null)
+        if (id.Equals("1") || id.Equals("2"))
+            throw new ArgumentException("The first two aircrafts (id 1 and 2) are not available for delete.");
+        var ac = db.Aircrafts.FirstOrDefaultAsync(p => p.Id == id);
+        if (ac.Result == null)
             throw new KeyNotFoundException("Could not find the aircraft with id: " + id + "");
-        return Aircratf;
+        db.Aircrafts.Remove(ac.Result);
+        await db.SaveChangesAsync();
+        return ac.Result;
+    }
+
+    public async Task<List<AircraftEntity>> GetAircrafts()
+    {
+        return await db.Aircrafts.ToListAsync();
+    }
+
+    public AircraftResponseDto GetOneAircraft(string id)
+    {
+        var aircraft = new AircraftResponseDto(db.Aircrafts.FirstOrDefault(p => p.Id == id));
+        if (aircraft == null)
+            throw new KeyNotFoundException("Could not find the aircraft with id: " + id + "");
+        return aircraft;
     }
 }
 

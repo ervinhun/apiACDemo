@@ -10,15 +10,19 @@ builder.Services.AddOpenApiDocument(config =>
 });
 builder.Services.AddControllers();
 builder.Services.AddCors();
-builder.Services.AddSingleton<AircraftDB>();
 builder.Services.AddScoped<AircraftService>();
 builder.Services.AddControllers();
+builder.Services.AddDbContext<MyDbContext>();
 OpenApiHeader header = new OpenApiHeader();
 header.Name = "Authorization";
 header.Description = "Authorization token";
 
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<MyDbContext>().Database.EnsureCreated();
+}
 
 app.MapGet("/", () => "Hello World!");
 

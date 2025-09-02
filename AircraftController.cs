@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 public class AircraftController : ControllerBase
 {
 
-    private readonly AircraftService _service;
+    private readonly IAircraftService _service;
 
     public AircraftController(AircraftService service)
     {
@@ -16,43 +16,41 @@ public class AircraftController : ControllerBase
     
     [HttpGet]
     [Route(nameof(GetAircraft))]
-    public Aircraft GetAircraft([FromQuery] string id)
+    public AircraftResponseDto GetAircraft([FromQuery] string id)
     {
-        Aircraft ac = _service.GetOneAircraft(id);
-        return ac;
+        return _service.GetOneAircraft(id);
     }
     
     [HttpGet]
     [Route(nameof(GetAllAircrafts))]
-    public List<Aircraft> GetAllAircrafts()
+    public async Task<List<AircraftEntity>> GetAllAircrafts()
     {
-        return _service.GetAircrafts();
+        return await _service.GetAircrafts();
     }
     
     [HttpPost]
-    [Route(nameof(CreateAircratf))]
-    public void CreateAircratf([FromBody] CreateAcDto acs)
+    [Route(nameof(CreateAircraft))]
+    public async Task<AircraftEntity> CreateAircraft([FromBody] CreateAcDto acs)
     {
-     Console.WriteLine("Add Aircratf");
-     _service.CreateAircraft(acs);
+     return await _service.CreateAircraft(acs);
     }
     
     [HttpPut]
     [Route(nameof(UpdateAircratf))]
-    public void UpdateAircratf(
+    public async Task<AircraftEntity> UpdateAircratf(
         [FromQuery] string id, 
         [FromBody] CreateAcDto acs)
     {
      Console.WriteLine("Update Aircratf");
-     _service.UpdateAc(id, acs);
+     return await _service.UpdateAc(id, acs);
     }
     
     [HttpDelete]
     [Route(nameof(DeleteAircratf))]
-    public void DeleteAircratf([FromQuery] string id)
+    public async Task<AircraftEntity> DeleteAircratf([FromQuery] string id)
     {
      Console.WriteLine("Delete Aircratf");   
-     _service.DeleteAc(id);
+     return await _service.DeleteAc(id);
     }
     
     
@@ -60,7 +58,7 @@ public class AircraftController : ControllerBase
     {
         [MinLength(3)]
         public string Brand { get; set; }
-        [MinLength(3)]
+        [MinLength(2)]
         public string Model { get; set; }
         [Range(1950,2025)]
         public int YearOfManufacture { get; set; }
