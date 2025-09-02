@@ -16,9 +16,9 @@ public class AircraftController : ControllerBase
     
     [HttpGet]
     [Route(nameof(GetAircraft))]
-    public AircraftResponseDto GetAircraft([FromQuery] string id)
+    public async Task<AircraftResponseDto> GetAircraft([FromQuery] string id)
     {
-        return _service.GetOneAircraft(id);
+        return _service.GetOneAircraft(id).Result;
     }
     
     [HttpGet]

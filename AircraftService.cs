@@ -57,7 +57,7 @@ public class AircraftService (MyDbContext db) : IAircraftService
         return await db.Aircrafts.ToListAsync();
     }
 
-    public AircraftResponseDto GetOneAircraft(string id)
+    public async Task<AircraftResponseDto> GetOneAircraft(string id)
     {
         var aircraft = new AircraftResponseDto(db.Aircrafts.FirstOrDefault(p => p.Id == id));
         if (aircraft == null)
