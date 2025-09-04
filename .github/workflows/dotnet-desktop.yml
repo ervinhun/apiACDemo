@@ -45,21 +45,15 @@ on:
     branches: [ "master" ]
 
 jobs:
-
   build:
-
+    name: Build .NET solution
+    runs-on: windows-latest
     strategy:
       matrix:
         configuration: [Debug, Release]
 
-    runs-on: windows-latest  # For a list of available runner types, refer to
-                             # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
-
     env:
-      Solution_Name: apiACDemo.sln                         # Replace with your solution name, i.e. MyWpfApp.sln.
-      #Test_Project_Path: your-test-project-path                 # Replace with the path to your test project, i.e. MyWpfApp.Tests\MyWpfApp.Tests.csproj.
-      #Wap_Project_Directory: your-wap-project-directory-name    # Replace with the Wap project directory relative to the solution, i.e. MyWpfApp.Package.
-      #Wap_Project_Path: your-wap-project-path                   # Replace with the path to your Wap project, i.e. MyWpf.App.Package\MyWpfApp.Package.wapproj.
+      Solution_Name: ${{ github.workspace }}/apiACDemo.sln
 
     steps:
     - name: Checkout
@@ -67,25 +61,61 @@ jobs:
       with:
         fetch-depth: 0
 
-    # Install the .NET Core workload
-    - name: Install .NET Core
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
 
-    # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
 
-    # Execute all unit tests in the solution
-    #- name: Execute unit tests
-    #  run: dotnet test
-
-    # Restore the application to populate the obj folder with RuntimeIdentifiers
-    - name: Restore the application
-      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
+    - name: Restore dependencies
+      run: dotnet restore $env:Solution_Name --configuration $env:Configuration
       env:
         Configuration: ${{ matrix.configuration }}
+
+    - name: Build solution
+      run: msbuild $env:Solution_Name /p:Configuration=$env:Configuration
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    # - name: Run unit tests
+    #   run: dotnet test $env:Solution_Name --configuration $env:Configuration --no-build --verbosity normal
+    #   env:
+    #     Configuration: ${{ matrix.configuration }}
+
+  analyze:
+    name: CodeQL Analysis
+    runs-on: windows-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      matrix:
+        language: [ 'csharp' ]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+
+    
 
     # Decode the base 64 encoded pfx and save the Signing_Certificate
     #- name: Decode the pfx
